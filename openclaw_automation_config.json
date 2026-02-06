@@ -1,0 +1,66 @@
+{
+  "skill": {
+    "name": "xiaohongshu_auto_publish",
+    "version": "3.0",
+    "description": "小红书自动化图文发布（Playwright persistent context）",
+    "enabled": true,
+    "script": "xhs_auto.py",
+    "requirements": ["playwright", "schedule", "pillow"]
+  },
+  "commands": {
+    "login": {
+      "cmd": "python3 xhs_auto.py login",
+      "description": "扫码登录（首次需要，之后免扫码）"
+    },
+    "publish": {
+      "cmd": "python3 xhs_auto.py publish --generate",
+      "description": "自动生成内容并发布"
+    },
+    "publish_theme": {
+      "cmd": "python3 xhs_auto.py publish --generate --theme <主题>",
+      "description": "指定主题生成并发布"
+    },
+    "publish_file": {
+      "cmd": "python3 xhs_auto.py publish --file <content_file>",
+      "description": "从JSON文件发布"
+    },
+    "publish_custom": {
+      "cmd": "python3 xhs_auto.py publish --title <标题> --content <正文> --tags <标签1,标签2>",
+      "description": "自定义标题/正文/标签发布"
+    },
+    "dry_run": {
+      "cmd": "python3 xhs_auto.py publish --generate --dry-run",
+      "description": "试运行（填写但不点发布）"
+    },
+    "schedule": {
+      "cmd": "python3 xhs_auto.py schedule",
+      "description": "启动定时调度（每日08:00/20:00）"
+    },
+    "generate": {
+      "cmd": "python3 xhs_auto.py generate",
+      "description": "仅生成内容不发布"
+    }
+  },
+  "schedule": {
+    "type": "cron",
+    "expression": "0 8,20 * * *",
+    "timezone": "Asia/Shanghai"
+  },
+  "browser": {
+    "headless": false,
+    "persistent_context": true,
+    "user_data_dir": "browser_data/",
+    "timeout": 300000
+  },
+  "retry": {
+    "max_retries": 3,
+    "retry_delay_seconds": 5
+  },
+  "content": {
+    "title_max_length": 20,
+    "content_max_length": 1000,
+    "default_cover": "content/default_cover.png",
+    "themes": ["科技前沿", "AI工具", "效率提升"],
+    "config_file": "auto_manager_config.json"
+  }
+}

@@ -1,0 +1,20 @@
+# 浏览器持久化数据（包含登录凭据）
+browser_data/
+
+# 截图和日志
+screenshots/
+logs/
+
+# 旧的cookie文件
+xiaohongshu_cookies.json
+
+# 生成的内容
+content/post_*.json
+
+# 旧的截图文件
+*.png
+!content/default_cover.png
+
+# Python
+__pycache__/
+*.pyc
