@@ -80,13 +80,7 @@ log = logging.getLogger("xhs_auto")
 # ============================================================
 
 class ContentGenerator:
-    """根据配置模板生成小红书内容"""
-
-    def __init__(self, config_path=CONFIG_FILE):
-        self.config = {}
-        if config_path and Path(config_path).exists():
-            with open(config_path, "r", encoding="utf-8") as f:
-                self.config = json.load(f)
+    """内容加载/保存工具（不含内建模板，内容由调用方提供）"""
 
     def load_from_file(self, filepath: str) -> dict:
         """从JSON文件加载内容"""
@@ -97,64 +91,6 @@ class ContentGenerator:
             "content": data.get("content", data.get("body", "")),
             "tags": data.get("tags", []),
         }
-
-    def generate(self, theme: str = None) -> dict:
-        """生成一篇内容"""
-        themes = self.config.get("content_strategy", {}).get(
-            "content_themes", ["科技前沿", "AI工具", "效率提升"]
-        )
-        tags_pool = self.config.get("content_strategy", {}).get(
-            "tags_pool", ["OpenClaw", "AI助手", "自动化"]
-        )
-        if not theme:
-            theme = random.choice(themes)
-
-        templates = {
-            "科技前沿": {
-                "titles": [
-                    "最新科技动态：{t}来了！",
-                    "{t}：你不可不知的科技趋势",
-                    "一文读懂{t}的核心价值",
-                ],
-                "topics": ["AI大模型", "量子计算", "空间计算", "具身智能", "多模态AI"],
-            },
-            "AI工具": {
-                "titles": [
-                    "强烈推荐这个AI工具：{t}",
-                    "用了{t}之后效率翻倍！",
-                    "{t}使用心得分享",
-                ],
-                "topics": ["OpenClaw", "ChatGPT", "Claude", "Cursor", "Midjourney"],
-            },
-            "效率提升": {
-                "titles": [
-                    "提高效率的{t}方法论",
-                    "学会{t}，每天多出2小时",
-                    "{t}：高效人士的秘密武器",
-                ],
-                "topics": ["番茄工作法", "GTD", "时间块管理", "自动化流程", "AI辅助"],
-            },
-        }
-
-        tpl = templates.get(theme, templates["科技前沿"])
-        topic = random.choice(tpl["topics"])
-        title = random.choice(tpl["titles"]).format(t=topic)
-
-        body = (
-            f"分享一下关于{topic}的心得体会\n\n"
-            f"最近深入研究了{topic}，发现它真的能大幅提升我们的工作和生活质量。\n\n"
-            f"核心亮点：\n"
-            f"1. 简单易上手，零门槛\n"
-            f"2. 效果立竿见影\n"
-            f"3. 适合各种场景\n\n"
-            f"如果你也对{theme}感兴趣，欢迎一起交流！"
-        )
-
-        tags = random.sample(tags_pool, min(5, len(tags_pool)))
-        if theme not in tags:
-            tags.append(theme)
-
-        return {"title": title, "content": body, "tags": tags, "theme": theme}
 
     def save(self, content: dict) -> Path:
         """保存内容到JSON文件"""
@@ -600,7 +536,7 @@ class XHSAutomation:
 # 带重试的发布
 # ============================================================
 
-async def publish_with_retry(content: dict, headless=False, dry_run=False) -> dict:
+async def publish_with_retry(content: dict, headless=False, dry_run=False, image_paths: list = None) -> dict:
     """带重试机制的发布（复用同一个 persistent context）"""
     bot = XHSAutomation(headless=headless)
     try:
@@ -613,7 +549,7 @@ async def publish_with_retry(content: dict, headless=False, dry_run=False) -> di
         for attempt in range(1, MAX_RETRIES + 1):
             log.info(f"--- 第 {attempt}/{MAX_RETRIES} 次尝试 ---")
             try:
-                result = await bot.publish(content, dry_run=dry_run)
+                result = await bot.publish(content, dry_run=dry_run, image_paths=image_paths)
                 if result["success"]:
                     return result
                 log.warning(f"发布未确认成功 (status={result['status']}), 将重试...")
@@ -701,8 +637,7 @@ def main():
     p_pub.add_argument("--title", help="笔记标题（不指定file时使用）")
     p_pub.add_argument("--content", help="笔记正文（不指定file时使用）")
     p_pub.add_argument("--tags", help="标签，逗号分隔")
-    p_pub.add_argument("--generate", action="store_true", help="自动生成内容")
-    p_pub.add_argument("--theme", help="内容主题（配合--generate使用）")
+    p_pub.add_argument("--images", help="图片路径，逗号分隔（可选，默认用default_cover）")
     p_pub.add_argument("--dry-run", action="store_true", help="试运行（不点发布按钮）")
     p_pub.add_argument("--headless", action="store_true", help="无头模式")
 
@@ -712,9 +647,8 @@ def main():
     # login 命令
     p_login = sub.add_parser("login", help="扫码登录并保存Cookie")
 
-    # generate 命令
-    p_gen = sub.add_parser("generate", help="生成内容（不发布）")
-    p_gen.add_argument("--theme", help="内容主题")
+    # generate 命令（已废弃，保留入口给出提示）
+    p_gen = sub.add_parser("generate", help="[已废弃] 请直接用 --file 或 --title 发布")
 
     args = parser.parse_args()
 
@@ -724,9 +658,6 @@ def main():
         # 确定内容来源
         if args.file:
             content = gen.load_from_file(args.file)
-        elif args.generate:
-            content = gen.generate(theme=args.theme)
-            gen.save(content)
         elif args.title:
             content = {
                 "title": args.title,
@@ -734,13 +665,17 @@ def main():
                 "tags": args.tags.split(",") if args.tags else [],
             }
         else:
-            # 默认生成内容
-            content = gen.generate()
-            gen.save(content)
+            log.error("请指定内容来源: --file <json文件> 或 --title <标题> --content <正文> --tags <标签>")
+            sys.exit(1)
+
+        # 图片参数
+        img_paths = None
+        if hasattr(args, 'images') and args.images:
+            img_paths = [p.strip() for p in args.images.split(",")]
 
         log.info(f"准备发布: {content['title']}")
         result = asyncio.run(
-            publish_with_retry(content, headless=args.headless, dry_run=args.dry_run)
+            publish_with_retry(content, headless=args.headless, dry_run=args.dry_run, image_paths=img_paths)
         )
         _save_report(content, result)
 
@@ -769,24 +704,17 @@ def main():
             sys.exit(1)
 
     elif args.command == "generate":
-        gen = ContentGenerator()
-        content = gen.generate(theme=args.theme)
-        filepath = gen.save(content)
-        log.info(f"标题: {content['title']}")
-        log.info(f"标签: {', '.join(content['tags'])}")
-        log.info(f"内容:\n{content['content']}")
-        log.info(f"文件: {filepath}")
+        log.info("generate 命令已移除内置模板。请直接使用 --file 或 --title/--content/--tags 发布。")
+        log.info("示例: python3 xhs_auto.py publish --title '标题' --content '正文' --tags '标签1,标签2'")
 
     else:
         parser.print_help()
         print("\n快速开始:")
         print("  python3 xhs_auto.py login          # 首次扫码登录")
-        print("  python3 xhs_auto.py publish         # 自动生成并发布")
-        print("  python3 xhs_auto.py publish --file content/post.json  # 从文件发布")
-        print("  python3 xhs_auto.py publish --generate --theme AI工具  # 指定主题发布")
-        print("  python3 xhs_auto.py publish --dry-run  # 试运行")
-        print("  python3 xhs_auto.py schedule        # 启动定时调度")
-        print("  python3 xhs_auto.py generate        # 仅生成内容")
+        print("  python3 xhs_auto.py publish --file content/post.json      # 从文件发布")
+        print("  python3 xhs_auto.py publish --title '标题' --content '正文' --tags '标签1,标签2'")
+        print("  python3 xhs_auto.py publish --file post.json --dry-run    # 试运行")
+        print("  python3 xhs_auto.py schedule                              # 启动定时调度")
 
 
 if __name__ == "__main__":

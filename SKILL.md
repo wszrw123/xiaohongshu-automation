@@ -31,20 +31,17 @@ python3 xhs_auto.py login
 ### 2. 发布笔记
 
 ```bash
-# 自动生成内容并发布
-python3 xhs_auto.py publish --generate
-
-# 试运行（填写内容但不点发布按钮）
-python3 xhs_auto.py publish --generate --dry-run
-
-# 指定主题
-python3 xhs_auto.py publish --generate --theme "AI工具"
-
-# 从文件发布
+# 从JSON文件发布
 python3 xhs_auto.py publish --file content/post.json
 
-# 指定标题和内容
+# 直接指定标题、正文、标签
 python3 xhs_auto.py publish --title "标题" --content "正文" --tags "标签1,标签2"
+
+# 指定自定义图片（可选，默认用 content/default_cover.png）
+python3 xhs_auto.py publish --title "标题" --content "正文" --images "img1.png,img2.png"
+
+# 试运行（填写内容但不点发布按钮）
+python3 xhs_auto.py publish --file content/post.json --dry-run
 ```
 
 ### 3. 定时调度
@@ -53,14 +50,7 @@ python3 xhs_auto.py publish --title "标题" --content "正文" --tags "标签1,
 python3 xhs_auto.py schedule
 ```
 
-默认每日 08:00 和 20:00 自动生成并发布（可在 `auto_manager_config.json` 中修改）。
-
-### 4. 仅生成内容
-
-```bash
-python3 xhs_auto.py generate
-python3 xhs_auto.py generate --theme "效率提升"
-```
+定时调度需配合外部内容源（JSON文件），在 `auto_manager_config.json` 中配置时间。
 
 ## 发布流程
 
@@ -108,12 +98,11 @@ xiaohongshu-automation/
 
 | 命令 | 说明 |
 |------|------|
-| `python3 xhs_auto.py login` | 扫码登录 |
-| `python3 xhs_auto.py publish --generate` | 自动生成并发布 |
-| `python3 xhs_auto.py publish --file <文件>` | 从文件发布 |
-| `python3 xhs_auto.py publish --dry-run` | 试运行 |
+| `python3 xhs_auto.py login` | 扫码登录（首次需要） |
+| `python3 xhs_auto.py publish --file <json>` | 从JSON文件发布 |
+| `python3 xhs_auto.py publish --title <标题> --content <正文> --tags <标签>` | 直接指定内容发布 |
+| `python3 xhs_auto.py publish --file <json> --dry-run` | 试运行 |
 | `python3 xhs_auto.py schedule` | 启动定时调度 |
-| `python3 xhs_auto.py generate` | 仅生成内容 |
 
 ## 配置说明
 
@@ -121,11 +110,14 @@ xiaohongshu-automation/
 
 ```json
 {
-  "content_strategy": {
-    "daily_post_count": 2,
+  "schedule": {
+    "daily_posts": 2,
     "post_times": ["08:00", "20:00"],
-    "content_themes": ["科技前沿", "AI工具", "效率提升"],
-    "tags_pool": ["OpenClaw", "AI助手", "自动化", ...]
+    "timezone": "Asia/Shanghai"
+  },
+  "safety": {
+    "rate_limiting": true,
+    "max_daily_posts": 50
   }
 }
 ```

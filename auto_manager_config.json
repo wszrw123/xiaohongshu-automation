@@ -1,59 +1,12 @@
 {
-  "account": {
-    "username": "YOUR_XHS_USERNAME",
-    "nickname": "OpenClaw智能助手",
-    "bio": "🤖 由OpenClaw AI助手自动化运营\n✨ 分享科技、AI、效率工具\n🎯 每日更新，智能推荐",
-    "avatar": "https://example.com/avatar.jpg"
-  },
-  "content_strategy": {
+  "schedule": {
     "daily_posts": 2,
     "post_times": ["08:00", "20:00"],
-    "content_themes": [
-      "科技前沿",
-      "AI工具",
-      "效率提升",
-      "技能学习",
-      "生活技巧"
-    ],
-    "tags_pool": [
-      "OpenClaw", "AI助手", "人工智能", "自动化", "效率工具",
-      "科技", "学习", "成长", "技能", "小红书运营",
-      "内容创作", "数字生活", "智能助手", "AI应用"
-    ]
-  },
-  "automation": {
-    "auto_publish": true,
-    "auto_reply": true,
-    "auto_analyze": true,
-    "auto_monitor": true,
-    "schedule_enabled": true
-  },
-  "content_sources": {
-    "ai_generated": true,
-    "curated_content": true,
-    "user_submitted": false,
-    "rss_feeds": [
-      "https://techcrunch.com/feed/",
-      "https://www.theverge.com/rss/index.xml",
-      "https://ai.googleblog.com/feeds/posts/default"
-    ]
-  },
-  "engagement": {
-    "reply_comments": true,
-    "like_comments": true,
-    "follow_back": false,
-    "join_topics": true
-  },
-  "analytics": {
-    "daily_report": true,
-    "weekly_summary": true,
-    "competitor_analysis": true,
-    "trend_detection": true
+    "timezone": "Asia/Shanghai"
   },
   "safety": {
-    "content_review": true,
     "rate_limiting": true,
-    "backup_enabled": true,
-    "compliance_check": true
+    "max_daily_posts": 50,
+    "content_review": true
   }
 }
